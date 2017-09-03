@@ -1,13 +1,35 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
+
+import Search from './Search';
+import Editor from './Editor';
 
 class App extends Component {
-  render () {
-    return (
-      <div>
-        Hello World!
-      </div>
-    )
-  }
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        // if (!this.props.photo) {
+        //     return (
+        //         <Search />
+        //     );
+        // }
+
+        return (
+            <div>
+                <Editor
+                    photo={this.props.photo}
+                />
+            </div>
+        );
+    }
 }
 
-export default App;
+const mapStateToProps = state => {
+    return {
+        photo: state.photo
+    };
+}
+
+export default connect(mapStateToProps)(App);

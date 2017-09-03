@@ -1,8 +1,12 @@
 import { combineReducers } from 'redux';
-// import reducer from './reducer';
+import Photos from './photos';
+import Photo from './photo';
+import History from './history';
 
 const rootReducer = combineReducers({
-    // reducer: Reducer
+    photos: Photos,
+    photo: Photo,
+    history: History
 });
 
 export default rootReducer;

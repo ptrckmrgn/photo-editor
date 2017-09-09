@@ -23,6 +23,11 @@ class Editor extends Component {
             canvasData: null,
             cropBoxData: null,
             zoom: 100,
+            width: 0,
+            height: 0,
+            scaleLock: true,
+            scaleX: 1,
+            scaleY: 1,
             rotation: 0,
             quality: 0.9
         };
@@ -30,6 +35,11 @@ class Editor extends Component {
         this.onClickInput = this.onClickInput.bind(this);
         this.onClickRotate = this.onClickRotate.bind(this);
         this.onChangeZoom = this.onChangeZoom.bind(this);
+        this.onChangeWidth = this.onChangeWidth.bind(this);
+        this.onBlurWidth = this.onBlurWidth.bind(this);
+        this.onChangeHeight = this.onChangeHeight.bind(this);
+        this.onBlurHeight = this.onBlurHeight.bind(this);
+        this.onChangeScaleLock = this.onChangeScaleLock.bind(this);
         this.onChangeRotation = this.onChangeRotation.bind(this);
         this.onClickDownload = this.onClickDownload.bind(this);
         this.onChangeQuality = this.onChangeQuality.bind(this);
@@ -61,8 +71,10 @@ class Editor extends Component {
             imageData = cropper.getImageData(),
             canvasData = cropper.getCanvasData(),
             cropBoxData = cropper.getCropBoxData(),
-            zoom = Math.floor(canvasData.width / canvasData.naturalWidth * 100);
-        const rotation = cropper.getData().rotate;
+            zoom = Math.floor(canvasData.width / canvasData.naturalWidth * 100),
+            rotation = cropper.getData().rotate,
+            width = cropper.getImageData().naturalWidth,
+            height = cropper.getImageData().naturalHeight;
 
         this.setState(() => {
             return {
@@ -73,6 +85,8 @@ class Editor extends Component {
                 canvasData: canvasData,
                 cropBoxData: cropBoxData,
                 zoom: zoom,
+                width: width,
+                height: height,
                 rotation: rotation
             }
         });
@@ -111,6 +125,92 @@ class Editor extends Component {
 
         this.state.cropper.zoomTo(zoom / 100);
         this.setState({zoom});
+    }
+
+    isPositiveInteger(value) {
+        const regex = new RegExp(/(?!0)(\d+)(?!.)/);
+        return regex.test(value);
+    }
+
+    scaleWidth(width) {
+        const imageData = this.state.cropper.getImageData();
+        const ratio = width / (imageData.naturalWidth * this.state.scaleX);
+        const scaleX = ratio * this.state.scaleX;
+
+        if (this.state.scaleLock) {
+            const scaleY = this.state.scaleY * ratio;
+            const height = _.max([_.round(imageData.naturalHeight * scaleY), 1]);
+
+            this.setState({ width, height, scaleX, scaleY });
+            this.state.cropper.scale(scaleX, scaleY)
+        }
+        else {
+            this.setState({ width, scaleX });
+            this.state.cropper.scaleX(scaleX)
+        }
+    }
+
+    onChangeWidth(width) {
+        if (this.isPositiveInteger(width)) {
+            this.setState({ width });
+            this.scaleWidth(width);
+        }
+        else if (width === '') {
+            this.setState({ width });
+        }
+    }
+
+    onBlurWidth(event) {
+        let width = event.target.value;
+
+        if (!this.isPositiveInteger(width)) {
+            width = 1;
+            this.scaleWidth(width);
+        }
+    }
+
+    scaleHeight(height) {
+        const imageData = this.state.cropper.getImageData();
+        const ratio = height / (imageData.naturalHeight * this.state.scaleY);
+        const scaleY = ratio * this.state.scaleY;
+
+        if (this.state.scaleLock) {
+            const scaleX = this.state.scaleX * ratio;
+            const width = _.max([_.round(imageData.naturalWidth * scaleX), 1]);
+
+            this.setState({ width, height, scaleX, scaleY });
+            this.state.cropper.scale(scaleX, scaleY)
+        }
+        else {
+            this.setState({ height, scaleY });
+            this.state.cropper.scaleY(scaleY)
+        }
+    }
+
+    onChangeHeight(event) {
+        const height = event.target.value;
+
+        if (this.isPositiveInteger(height)) {
+            this.scaleHeight(height);
+        }
+        else if (height === '') {
+            this.setState({ height });
+        }
+    }
+
+    onBlurHeight(event) {
+        let height = event.target.value;
+
+        if (!this.isPositiveInteger(height)) {
+            height = 1;
+            this.scaleHeight(height);
+        }
+    }
+
+    onChangeScaleLock(event) {
+        const scaleLock = event.target.checked ? true : false;
+
+        this.setState({scaleLock})
     }
 
     setRotation(rotation) {
@@ -191,14 +291,25 @@ class Editor extends Component {
                 <Canvas />
                 <Toolbar
                     // props
-                    rotation={this.state.rotation}
                     zoom={this.state.zoom}
+                    width={this.state.width}
+                    height={this.state.height}
+                    scaleLock={this.state.scaleLock}
+                    rotation={this.state.rotation}
 
                     // callbacks
                     onClickInput={this.onClickInput}
+
                     onClickRotate={this.onClickRotate}
-                    onChangeZoom={this.onChangeZoom}
                     onChangeRotation={this.onChangeRotation}
+
+                    onChangeZoom={this.onChangeZoom}
+
+                    onChangeWidth={this.onChangeWidth}
+                    onBlurWidth={this.onBlurWidth}
+                    onBlurHeight={this.onBlurHeight}
+                    onChangeHeight={this.onChangeHeight}
+                    onChangeScaleLock={this.onChangeScaleLock}
                 />
                 <Download
                     // props

@@ -25,7 +25,7 @@ class Scale extends Component {
         this.onClickCancel = this.onClickCancel.bind(this);
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this.setState({
             scaleWidth: this.props.scaleWidth,
             scaleHeight: this.props.scaleHeight,
@@ -34,22 +34,31 @@ class Scale extends Component {
         });
     }
 
+    componentWillUpdate(nextProps) {
+        if (JSON.stringify(this.props) != JSON.stringify(nextProps)) {
+            this.setState({
+                scaleWidth: nextProps.scaleWidth,
+                scaleHeight: nextProps.scaleHeight,
+                scaleX: nextProps.scaleX,
+                scaleY: nextProps.scaleY,
+            });
+        }
+    }
+
     scaleWidth(scaleWidth) {
-        const imageData = this.props.cropper.getImageData();
-        const ratio = scaleWidth / (imageData.naturalWidth * this.state.scaleX);
+        const ratio = scaleWidth / (this.props.imageData.naturalWidth * this.state.scaleX);
         const scaleX = ratio * this.state.scaleX;
-        console.log(ratio);
 
         if (this.state.scaleLock) {
             const scaleY = this.state.scaleY * ratio;
-            const scaleHeight = _.max([_.round(imageData.naturalHeight * scaleY), 1]);
+            const scaleHeight = _.max([_.round(this.props.imageData.naturalHeight * scaleY), 1]);
 
             this.setState({ scaleWidth, scaleHeight, scaleX, scaleY });
-            this.props.cropper.scale(scaleX, scaleY)
+            this.props.updateCropper('scale', scaleX, scaleY);
         }
         else {
             this.setState({ scaleWidth, scaleX });
-            this.props.cropper.scaleX(scaleX);
+            this.props.updateCropper('scaleX', scaleX);
         }
     }
 
@@ -72,20 +81,19 @@ class Scale extends Component {
     }
 
     scaleHeight(scaleHeight) {
-        const imageData = this.props.cropper.getImageData();
-        const ratio = scaleHeight / (imageData.naturalHeight * this.state.scaleY);
+        const ratio = scaleHeight / (this.props.imageData.naturalHeight * this.state.scaleY);
         const scaleY = ratio * this.state.scaleY;
 
         if (this.state.scaleLock) {
             const scaleX = this.state.scaleX * ratio;
-            const scaleWidth = _.max([_.round(imageData.naturalWidth * scaleX), 1]);
+            const scaleWidth = _.max([_.round(this.props.imageData.naturalWidth * scaleX), 1]);
 
             this.setState({ scaleWidth, scaleHeight, scaleX, scaleY });
-            this.props.cropper.scale(scaleX, scaleY)
+            this.props.updateCropper('scale', scaleX, scaleY);
         }
         else {
             this.setState({ scaleHeight, scaleY });
-            this.props.cropper.scaleY(scaleY)
+            this.props.updateCropper('scaleY', scaleY);
         }
     }
 
@@ -122,7 +130,7 @@ class Scale extends Component {
     }
 
     onClickCancel() {
-        this.props.cropper.scale(this.props.scaleX, this.props.scaleY);
+        this.props.updateCropper('scale', this.props.scaleX, this.props.scaleY);
         this.setState({
             scaleWidth: this.props.scaleWidth,
             scaleHeight: this.props.scaleHeight,

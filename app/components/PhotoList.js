@@ -27,7 +27,6 @@ class PhotoList extends Component {
 
     render() {
         // if (Object.keys(this.props.photos).length === 0) {
-        //     console.log('true');
         //     return (
         //         <h3>Photos</h3>
         //     );

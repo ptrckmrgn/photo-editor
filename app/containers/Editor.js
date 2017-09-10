@@ -6,10 +6,10 @@ import CropperJS from 'cropperjs';
 // import diff from 'deep-diff';
 
 import Cropper from './Cropper';
-import { rotate, setZoom } from '../actions/history';
-import { ROTATE, SET_ZOOM } from '../actions/history';
+import { makeHistory, undoHistory, redoHistory } from '../actions/history';
 import Canvas from '../components/editor/Canvas';
 import Toolbar from '../components/editor/Toolbar';
+import History from './editor/History';
 import Zoom from './editor/Zoom';
 import Scale from './editor/Scale';
 import Download from '../components/editor/Download';
@@ -60,10 +60,22 @@ class Editor extends Component {
         this.updateCropper = this.updateCropper.bind(this);
     }
 
+    componentDidMount() {
+        this.createCropper();
+    }
+
     componentWillUpdate(nextProps, nextState) {
+        if (this.props.history) {
+            if (nextProps.history.active != this.props.history.active) {
+                const newState = nextProps.history[nextProps.history.active];
+                this.setState(newState);
+                this.updateCropper2();
+            }
+        }
+
         if (this.state.scaleX != nextState.scaleX
                 || this.state.scaleY != nextState.scaleY) {
-            // this.cropper.scale(nextState.scaleX, nextState.scaleY);
+            this.cropper.scale(nextState.scaleX, nextState.scaleY);
         }
         //
         // console.log(this.state);
@@ -71,6 +83,10 @@ class Editor extends Component {
         // _.map(diff(this.state, nextState), (item) => {
         //     console.log(item);
         // })
+    }
+
+    updateCropper2() {
+        this.cropper.scale(this.state.scaleX, this.state.scaleY);
     }
 
     // getCropperState(cropper = this.cropper) {
@@ -128,6 +144,8 @@ class Editor extends Component {
                     scaleHeight: cropper.getImageData().naturalHeight,
                     rotation: data.rotate
                 }
+            }, () => {
+                this.props.makeHistory(this.state);
             });
         });
 
@@ -302,18 +320,16 @@ class Editor extends Component {
      * Calback function to update state
      */
     updateState(value) {
-        this.setState(value);
+        this.setState(value, () => {
+            this.props.makeHistory(this.state);
+        });
     }
 
     /**
      * Calback function to update cropper
      */
-    updateCropper(method, value) {
-        this.cropper[method](value);
-    }
-
-    componentDidMount() {
-        this.createCropper();
+    updateCropper(method, valueA, valueB) {
+        this.cropper[method](valueA, valueB);
     }
 
     render() {
@@ -329,6 +345,10 @@ class Editor extends Component {
         return (
             <div>
                 <Canvas />
+                <History
+                    onClickUndo={this.props.undoHistory}
+                    onClickRedo={this.props.redoHistory}
+                />
                 <Zoom
                     zoom={this.state.zoom}
                     updateCropper={this.updateCropper}
@@ -336,7 +356,7 @@ class Editor extends Component {
                 />
                 <Scale
                     // TODO rename width/height
-                    cropper={this.cropper}
+                    imageData={this.cropper.getImageData()}
                     scaleWidth={this.state.scaleWidth}
                     scaleHeight={this.state.scaleHeight}
                     scaleX={this.state.scaleX}
@@ -388,7 +408,7 @@ const mapStateToProps = state => {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ rotate, setZoom }, dispatch);
+    return bindActionCreators({ makeHistory, undoHistory, redoHistory }, dispatch);
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Editor);

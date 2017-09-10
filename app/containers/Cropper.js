@@ -37,6 +37,7 @@ const newCropper = (image) => {
     return new CropperJS(image, {
         viewMode: 1,
         autoCrop: false,
+        autoCropArea: 1,
         wheelZoomRatio: 0.25
     });
 }

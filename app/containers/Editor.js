@@ -3,49 +3,77 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import _ from 'lodash';
 import CropperJS from 'cropperjs';
+// import diff from 'deep-diff';
 
 import Cropper from './Cropper';
 import { rotate, setZoom } from '../actions/history';
 import { ROTATE, SET_ZOOM } from '../actions/history';
 import Canvas from '../components/editor/Canvas';
 import Toolbar from '../components/editor/Toolbar';
+import Zoom from './editor/Zoom';
+import Scale from './editor/Scale';
 import Download from '../components/editor/Download';
 
 class Editor extends Component {
     constructor(props) {
         super(props);
 
+        this.cropper = null;
+
         this.state = {
-            cropper: null,
+            // cropper: null,
             data: null,
             containerData: null,
             imageData: null,
             canvasData: null,
             cropBoxData: null,
             zoom: 100,
-            width: 0,
+            scaleWidth: 0,
             height: 0,
             scaleLock: true,
             scaleX: 1,
             scaleY: 1,
+            cropWidth: 0,
+            cropHeight: 0,
+            cropLock: true,
             rotation: 0,
             quality: 0.9
         };
 
         this.onClickInput = this.onClickInput.bind(this);
-        this.onClickRotate = this.onClickRotate.bind(this);
-        this.onChangeZoom = this.onChangeZoom.bind(this);
-        this.onChangeWidth = this.onChangeWidth.bind(this);
-        this.onBlurWidth = this.onBlurWidth.bind(this);
-        this.onChangeHeight = this.onChangeHeight.bind(this);
-        this.onBlurHeight = this.onBlurHeight.bind(this);
-        this.onChangeScaleLock = this.onChangeScaleLock.bind(this);
+
         this.onChangeRotation = this.onChangeRotation.bind(this);
-        this.onClickDownload = this.onClickDownload.bind(this);
+        this.onClickRotate = this.onClickRotate.bind(this);
+
+        this.onClickCrop = this.onClickCrop.bind(this);
+        this.onChangeCropWidth = this.onChangeCropWidth.bind(this);
+        this.onBlurCropWidth = this.onBlurCropWidth.bind(this);
+        this.onChangeCropHeight = this.onChangeCropHeight.bind(this);
+        this.onBlurCropHeight = this.onBlurCropHeight.bind(this);
+        this.onChangeCropLock = this.onChangeCropLock.bind(this);
+        this.onClickClear = this.onClickClear.bind(this);
+
         this.onChangeQuality = this.onChangeQuality.bind(this);
+        this.onClickDownload = this.onClickDownload.bind(this);
+
+        this.updateState = this.updateState.bind(this);
+        this.updateCropper = this.updateCropper.bind(this);
     }
 
-    // getCropperState(cropper = this.state.cropper) {
+    componentWillUpdate(nextProps, nextState) {
+        if (this.state.scaleX != nextState.scaleX
+                || this.state.scaleY != nextState.scaleY) {
+            // this.cropper.scale(nextState.scaleX, nextState.scaleY);
+        }
+        //
+        // console.log(this.state);
+        // console.log(diff(this.state, nextState));
+        // _.map(diff(this.state, nextState), (item) => {
+        //     console.log(item);
+        // })
+    }
+
+    // getCropperState(cropper = this.cropper) {
     //     const data = cropper.getData();
     //     const containerData = cropper.getContainerData();
     //     const imageData = cropper.getImageData();
@@ -65,33 +93,6 @@ class Editor extends Component {
     //     this.props.getCropperData(cropperData);
     // }
 
-    updateState(cropper = this.state.cropper) {
-        const data = cropper.getData(),
-            containerData = cropper.getContainerData(),
-            imageData = cropper.getImageData(),
-            canvasData = cropper.getCanvasData(),
-            cropBoxData = cropper.getCropBoxData(),
-            zoom = Math.floor(canvasData.width / canvasData.naturalWidth * 100),
-            rotation = cropper.getData().rotate,
-            width = cropper.getImageData().naturalWidth,
-            height = cropper.getImageData().naturalHeight;
-
-        this.setState(() => {
-            return {
-                cropper: cropper,
-                data: data,
-                containerData: containerData,
-                imageData: imageData,
-                canvasData: canvasData,
-                cropBoxData: cropBoxData,
-                zoom: zoom,
-                width: width,
-                height: height,
-                rotation: rotation
-            }
-        });
-    }
-
     createCropper() {
         const image = document.querySelector('#image');
         // image.src = this.props.photo.urls.regular + "&client_id=cc78fb913f5d55dc67a375382fe3253b89173e2fe02ccf1b1cd1997e843cb335";
@@ -105,14 +106,40 @@ class Editor extends Component {
             wheelZoomRatio: 0.25
         });
 
+        this.cropper = cropper;
+
         image.addEventListener('ready', () => {
             Cropper.fitCanvas(cropper);
-            this.updateState(cropper);
+            cropper.setDragMode('move');
+
+            this.setState(() => {
+                const canvasData = cropper.getCanvasData(),
+                    data = cropper.getData();
+
+                return {
+                    cropper: cropper,
+                    data: data,
+                    containerData: cropper.getContainerData(),
+                    imageData: cropper.getImageData(),
+                    canvasData: canvasData,
+                    cropBoxData: cropper.getCropBoxData(),
+                    zoom: Math.floor(canvasData.width / canvasData.naturalWidth * 100),
+                    scaleWidth: cropper.getImageData().naturalWidth,
+                    scaleHeight: cropper.getImageData().naturalHeight,
+                    rotation: data.rotate
+                }
+            });
         });
 
         image.addEventListener('zoom', (event) => {
             const zoom = Math.floor(event.detail.ratio * 100);
-            this.setState({zoom});
+            this.setState({ zoom });
+        });
+
+        image.addEventListener('crop', event => {
+            const cropWidth = _.ceil(event.detail.width);
+            const cropHeight = _.ceil(event.detail.height);
+            this.setState({ cropWidth, cropHeight });
         });
     }
 
@@ -120,120 +147,123 @@ class Editor extends Component {
         event.target.select();
     }
 
-    onChangeZoom(event) {
-        const zoom = event.target.value;
-
-        this.state.cropper.zoomTo(zoom / 100);
-        this.setState({zoom});
-    }
-
     isPositiveInteger(value) {
         const regex = new RegExp(/(?!0)(\d+)(?!.)/);
         return regex.test(value);
     }
 
-    scaleWidth(width) {
-        const imageData = this.state.cropper.getImageData();
-        const ratio = width / (imageData.naturalWidth * this.state.scaleX);
-        const scaleX = ratio * this.state.scaleX;
+    cropWidth(cropWidth) {
+        // TODO !!!!!!!!!!!!!!
 
-        if (this.state.scaleLock) {
-            const scaleY = this.state.scaleY * ratio;
-            const height = _.max([_.round(imageData.naturalHeight * scaleY), 1]);
+        // const ratio = cropWidth / (imageData.naturalWidth * this.state.scaleX);
+        // const scaleX = ratio * this.state.scaleX;
+        //
+        // if (this.state.scaleLock) {
+        //     const scaleY = this.state.scaleY * ratio;
+        //     const cropHeight = _.max([_.round(imageData.naturalHeight * scaleY), 1]);
+        //
+        //     this.setState({ cropWidth, cropHeight, scaleX, scaleY });
+        //     this.cropper.scale(scaleX, scaleY)
+        // }
+        // else {
+        //     this.setState({ cropWidth, scaleX });
+        //     this.cropper.scaleX(scaleX)
+        // }
+    }
 
-            this.setState({ width, height, scaleX, scaleY });
-            this.state.cropper.scale(scaleX, scaleY)
+    onChangeCropWidth(cropWidth) {
+        if (this.isPositiveInteger(cropWidth)) {
+            this.setState({ cropWidth });
+            this.cropWidth(cropWidth);
         }
-        else {
-            this.setState({ width, scaleX });
-            this.state.cropper.scaleX(scaleX)
+        else if (cropWidth === '') {
+            this.setState({ cropWidth });
         }
     }
 
-    onChangeWidth(width) {
-        if (this.isPositiveInteger(width)) {
-            this.setState({ width });
-            this.scaleWidth(width);
-        }
-        else if (width === '') {
-            this.setState({ width });
+    onBlurCropWidth(cropWidth) {
+        if (!this.isPositiveInteger(cropWidth)) {
+            cropWidth = 1;
+            this.cropWidth(cropWidth);
         }
     }
 
-    onBlurWidth(event) {
-        let width = event.target.value;
+    cropHeight(cropHeight) {
+        // const imageData = this.cropper.getImageData();
+        // const ratio = cropHeight / (imageData.naturalHeight * this.state.scaleY);
+        // const scaleY = ratio * this.state.scaleY;
+        //
+        // if (this.state.scaleLock) {
+        //     const scaleX = this.state.scaleX * ratio;
+        //     const cropWidth = _.max([_.round(imageData.naturalWidth * scaleX), 1]);
+        //
+        //     this.setState({ cropWidth, cropHeight, scaleX, scaleY });
+        //     this.cropper.scale(scaleX, scaleY)
+        // }
+        // else {
+        //     this.setState({ cropHeight, scaleY });
+        //     this.cropper.scaleY(scaleY)
+        // }
+    }
 
-        if (!this.isPositiveInteger(width)) {
-            width = 1;
-            this.scaleWidth(width);
+    onChangeCropHeight(cropHeight) {
+        if (this.isPositiveInteger(cropHeight)) {
+            this.scaleHeight(cropHeight);
+        }
+        else if (cropHeight === '') {
+            this.setState({ cropHeight });
         }
     }
 
-    scaleHeight(height) {
-        const imageData = this.state.cropper.getImageData();
-        const ratio = height / (imageData.naturalHeight * this.state.scaleY);
-        const scaleY = ratio * this.state.scaleY;
-
-        if (this.state.scaleLock) {
-            const scaleX = this.state.scaleX * ratio;
-            const width = _.max([_.round(imageData.naturalWidth * scaleX), 1]);
-
-            this.setState({ width, height, scaleX, scaleY });
-            this.state.cropper.scale(scaleX, scaleY)
-        }
-        else {
-            this.setState({ height, scaleY });
-            this.state.cropper.scaleY(scaleY)
+    onBlurCropHeight(cropHeight) {
+        if (!this.isPositiveInteger(cropHeight)) {
+            cropHeight = 1;
+            this.cropHeight(cropHeight);
         }
     }
 
-    onChangeHeight(event) {
-        const height = event.target.value;
+    onChangeCropLock(checked) {
+        const cropLock = checked ? true : false;
 
-        if (this.isPositiveInteger(height)) {
-            this.scaleHeight(height);
-        }
-        else if (height === '') {
-            this.setState({ height });
-        }
+        this.setState({ cropLock });
     }
 
-    onBlurHeight(event) {
-        let height = event.target.value;
+    onClickCrop() {
+        this.cropper.crop();
 
-        if (!this.isPositiveInteger(height)) {
-            height = 1;
-            this.scaleHeight(height);
-        }
+        const cropBoxData = this.cropper.getCropBoxData();
+        const cropWidth = _.ceil(cropBoxData.width);
+        const cropHeight = _.ceil(cropBoxData.height);
+
+        this.setState({ cropWidth, cropHeight });
     }
 
-    onChangeScaleLock(event) {
-        const scaleLock = event.target.checked ? true : false;
-
-        this.setState({scaleLock})
+    onClickClear() {
+        this.cropper.clear();
     }
 
     setRotation(rotation) {
-        this.state.cropper.rotateTo(rotation);
+        this.cropper.rotateTo(rotation);
         this.setState({rotation});
     }
 
     onClickRotate(direction) {
         const DEGREES = 45;
-        const rotation = this.state.cropper.getData().rotate + direction * DEGREES;
+        const rotation = this.cropper.getData().rotate + direction * DEGREES;
 
-        this.setRotation(rotation);
+        this.onChangeRotation(rotation);
     }
 
-    onChangeRotation(event) {
-        this.setRotation(event.target.value);
+    onChangeRotation(rotation) {
+        this.cropper.rotateTo(rotation);
+        this.setState({ rotation });
     }
 
     onChangeQuality(event) {
         const quality = parseFloat(event.target.value);
         const head = 'data:image/jpeg;base64,';
         const size = document.querySelector('#filesize');
-        const result = this.state.cropper.getCroppedCanvas({
+        const result = this.cropper.getCroppedCanvas({
             beforeDrawImage: (canvas) => {
                 const ctx = canvas.getContext('2d');
                 ctx.imageSmoothingEnabled = false;
@@ -256,7 +286,7 @@ class Editor extends Component {
 
     onClickDownload(event) {
         const link = event.target;
-        const result = this.state.cropper.getCroppedCanvas({
+        const result = this.cropper.getCroppedCanvas({
             beforeDrawImage: (canvas) => {
                 const ctx = canvas.getContext('2d');
                 ctx.imageSmoothingEnabled = false;
@@ -268,16 +298,26 @@ class Editor extends Component {
         link.download = 'test.jpg';
     }
 
+    /**
+     * Calback function to update state
+     */
+    updateState(value) {
+        this.setState(value);
+    }
+
+    /**
+     * Calback function to update cropper
+     */
+    updateCropper(method, value) {
+        this.cropper[method](value);
+    }
+
     componentDidMount() {
         this.createCropper();
     }
 
-    componentWillReceiveProps(nextProps) {
-
-    }
-
     render() {
-        if (!this.state.cropper) {
+        if (!this.cropper) {
             return (
                 <div>
                     <Canvas />
@@ -289,12 +329,28 @@ class Editor extends Component {
         return (
             <div>
                 <Canvas />
+                <Zoom
+                    zoom={this.state.zoom}
+                    updateCropper={this.updateCropper}
+                    updateState={this.updateState}
+                />
+                <Scale
+                    // TODO rename width/height
+                    cropper={this.cropper}
+                    scaleWidth={this.state.scaleWidth}
+                    scaleHeight={this.state.scaleHeight}
+                    scaleX={this.state.scaleX}
+                    scaleY={this.state.scaleY}
+                    scaleLock={this.state.scaleLock}
+                    updateCropper={this.updateCropper}
+                    updateState={this.updateState}
+                />
                 <Toolbar
                     // props
-                    zoom={this.state.zoom}
-                    width={this.state.width}
-                    height={this.state.height}
-                    scaleLock={this.state.scaleLock}
+                    cropWidth={this.state.cropWidth}
+                    cropHeight={this.state.cropHeight}
+                    cropLock={this.state.cropLock}
+
                     rotation={this.state.rotation}
 
                     // callbacks
@@ -303,13 +359,13 @@ class Editor extends Component {
                     onClickRotate={this.onClickRotate}
                     onChangeRotation={this.onChangeRotation}
 
-                    onChangeZoom={this.onChangeZoom}
-
-                    onChangeWidth={this.onChangeWidth}
-                    onBlurWidth={this.onBlurWidth}
-                    onBlurHeight={this.onBlurHeight}
-                    onChangeHeight={this.onChangeHeight}
-                    onChangeScaleLock={this.onChangeScaleLock}
+                    onClickCrop={this.onClickCrop}
+                    onChangeCropWidth={this.onChangeCropWidth}
+                    onBlurCropWidth={this.onBlurCropWidth}
+                    onBlurCropHeight={this.onBlurCropHeight}
+                    onChangeCropHeight={this.onChangeCropHeight}
+                    onChangeCropLock={this.onChangeCropLock}
+                    onClickClear={this.onClickClear}
                 />
                 <Download
                     // props

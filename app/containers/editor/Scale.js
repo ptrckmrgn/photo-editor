@@ -9,11 +9,11 @@ class Scale extends Component {
         super(props);
 
         this.state = {
-            scaleWidth: 0,
-            scaleHeight: 0,
-            scaleX: 1,
-            scaleY: 1,
-            scaleLock: true
+            scaleWidth: this.props.scaleWidth,
+            scaleHeight: this.props.scaleHeight,
+            scaleX: this.props.scaleX,
+            scaleY: this.props.scaleY,
+            scaleLock: this.props.scaleLock
         };
 
         this.onChangeScaleWidth = this.onChangeScaleWidth.bind(this);
@@ -21,28 +21,8 @@ class Scale extends Component {
         this.onBlurScaleWidth = this.onBlurScaleWidth.bind(this);
         this.onBlurScaleHeight = this.onBlurScaleHeight.bind(this);
         this.onChangeScaleLock = this.onChangeScaleLock.bind(this);
-        this.onSubmitScale = this.onSubmitScale.bind(this);
-        this.onClickCancel = this.onClickCancel.bind(this);
-    }
-
-    componentDidMount() {
-        this.setState({
-            scaleWidth: this.props.scaleWidth,
-            scaleHeight: this.props.scaleHeight,
-            scaleX: this.props.scaleX,
-            scaleY: this.props.scaleY,
-        });
-    }
-
-    componentWillUpdate(nextProps) {
-        if (JSON.stringify(this.props) != JSON.stringify(nextProps)) {
-            this.setState({
-                scaleWidth: nextProps.scaleWidth,
-                scaleHeight: nextProps.scaleHeight,
-                scaleX: nextProps.scaleX,
-                scaleY: nextProps.scaleY,
-            });
-        }
+        this.onSubmit = this.onSubmit.bind(this);
+        this.onCancel = this.onCancel.bind(this);
     }
 
     scaleWidth(scaleWidth) {
@@ -119,7 +99,7 @@ class Scale extends Component {
         this.setState({ scaleLock })
     }
 
-    onSubmitScale(event) {
+    onSubmit(event) {
         event.preventDefault();
         this.props.updateState({
             scaleWidth: this.state.scaleWidth,
@@ -129,7 +109,7 @@ class Scale extends Component {
         });
     }
 
-    onClickCancel() {
+    onCancel() {
         this.props.updateCropper('scale', this.props.scaleX, this.props.scaleY);
         this.setState({
             scaleWidth: this.props.scaleWidth,
@@ -137,6 +117,17 @@ class Scale extends Component {
             scaleX: this.props.scaleX,
             scaleY: this.props.scaleY,
         });
+    }
+
+    componentWillUpdate(nextProps) {
+        if (JSON.stringify(this.props) != JSON.stringify(nextProps)) {
+            this.setState({
+                scaleWidth: nextProps.scaleWidth,
+                scaleHeight: nextProps.scaleHeight,
+                scaleX: nextProps.scaleX,
+                scaleY: nextProps.scaleY,
+            });
+        }
     }
 
     render() {
@@ -152,8 +143,8 @@ class Scale extends Component {
                     onBlurScaleHeight={this.onBlurScaleHeight}
                     onChangeScaleHeight={this.onChangeScaleHeight}
                     onChangeScaleLock={this.onChangeScaleLock}
-                    onSubmitScale={this.onSubmitScale}
-                    onClickCancel={this.onClickCancel}
+                    onSubmit={this.onSubmit}
+                    onCancel={this.onCancel}
                 />
             </div>
         );

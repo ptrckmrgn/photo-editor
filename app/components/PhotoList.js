@@ -39,7 +39,7 @@ class PhotoList extends Component {
                     {this.renderPhotos()}
                 </ul>
             </div>
-        )
+        );
     }
 }
 

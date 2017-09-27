@@ -12,7 +12,7 @@ class SearchButton extends Component {
                     Get Photos
                 </button>
             </div>
-        )
+        );
     }
 }
 

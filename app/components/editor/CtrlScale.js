@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 const CtrlScale = (props) => {
     return (
         <div>
-            <form onSubmit={props.onSubmitScale}>
+            <form onSubmit={props.onSubmit}>
                 Scale:
                 <label>W:</label>
                 <input
@@ -28,7 +28,7 @@ const CtrlScale = (props) => {
                     onChange={event => props.onChangeScaleLock(event.target.checked)}
                 />
                 <button type="submit">Apply</button>
-                <button type="button" onClick={props.onClickCancel}>X</button>
+                <button type="button" onClick={props.onCancel}>X</button>
             </form>
         </div>
     );

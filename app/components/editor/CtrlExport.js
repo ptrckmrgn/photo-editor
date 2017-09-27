@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const Download = (props) => {
+const Export = (props) => {
     return (
         <div>
             <label>Quality</label>
@@ -11,16 +11,18 @@ const Download = (props) => {
                 max="1"
                 step="0.01"
                 value={props.quality}
-                onChange={props.onChangeQuality}
+                onChange={event => props.onChangeQuality(event.target.value)}
             />
             <input
                 type="number"
+                min="0.01"
+                max="1"
+                step="0.01"
                 value={props.quality}
                 onClick={props.onClickInput}
-                onChange={props.onChangeQuality}
+                onChange={event => props.onChangeQuality(event.target.value)}
             />
-            <span>Filesize: </span>
-            <span id="filesize"></span>
+            <span>Filesize: {props.filesize}</span>
             <a
                 onClick={props.onClickDownload}
             >
@@ -30,8 +32,8 @@ const Download = (props) => {
     );
 }
 
-Download.propTypes = {
+Export.propTypes = {
     onChangeQuality: PropTypes.func.isRequired
 }
 
-export default Download;
+export default Export;

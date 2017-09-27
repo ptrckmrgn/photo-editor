@@ -11,8 +11,8 @@ const CtrlHistory = (props) => {
 }
 
 CtrlHistory.propTypes = {
-    // onClickUndo: PropTypes.func.isRequired,
-    // onClickRedo: PropTypes.func.isRequired
+    onClickUndo: PropTypes.func.isRequired,
+    onClickRedo: PropTypes.func.isRequired
 }
 
 export default CtrlHistory;
